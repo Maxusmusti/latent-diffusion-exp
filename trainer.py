@@ -25,7 +25,10 @@ class Trainer:
         self.diffusion = Diffusion(image_size=args.image_size, device=self.device)
         
         # Pre-Trained autoencoder for image embedding
+        # See: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/models/vit_mae/modeling_vit_mae.py#L964 for forward pass ex
         ae_pretrained = ViTMAEForPreTraining.from_pretrained("facebook/vit-mae-base")
+        encoder = ae_pretrained.vit
+        decoder = ae_pretrained.decoder
 
         self.logger = SummaryWriter(os.path.join("runs", args.run_name))
         self.train_logs = []
