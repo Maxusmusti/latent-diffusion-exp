@@ -27,8 +27,8 @@ class Trainer:
         # Pre-Trained autoencoder for image embedding
         # See: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/models/vit_mae/modeling_vit_mae.py#L964 for forward pass ex
         ae_pretrained = ViTMAEForPreTraining.from_pretrained("facebook/vit-mae-base")
-        encoder = ae_pretrained.vit
-        decoder = ae_pretrained.decoder
+        self.encoder = ae_pretrained.vit
+        self.decoder = ae_pretrained.decoder
 
         self.logger = SummaryWriter(os.path.join("runs", args.run_name))
         self.train_logs = []
@@ -43,6 +43,7 @@ class Trainer:
         for i, (images, _) in enumerate(pbar):
             images = images.to(self.device)
             t = torch.randint(low=1, high=self.diffusion.num_steps, size=(images.shape[0],)).to(self.device)
+            images = self.encoder(images).last_hidden_state
             x_t, noise = self.diffusion.forward(images, t)
             predicted_noise = self.model(x_t, t)
             loss = self.loss_fn(noise, predicted_noise)
@@ -67,6 +68,7 @@ class Trainer:
             for i, (images, _) in enumerate(pbar):
                 images = images.to(self.device)
                 t = torch.randint(low=1, high=self.diffusion.num_steps, size=(images.shape[0],)).to(self.device)
+                images = self.encoder(images).last_hidden_state
                 x_t, noise = self.diffusion.forward(images, t)
                 predicted_noise = self.model(x_t, t)
                 loss = self.loss_fn(noise, predicted_noise)
@@ -103,8 +105,8 @@ class Trainer:
             self.train_epoch(epoch)
             self.val_epoch(epoch)
 
-            sampled_images = self.diffusion.sample_n_images(self.model, n=self.args.batch_size)
-          #  save_images(sampled_images, os.path.join("results", self.args.run_name, f"{epoch}.jpg"))
+            # sampled_images = self.diffusion.sample_n_images(self.model, n=self.args.batch_size)
+            # save_images(sampled_images, os.path.join("results", self.args.run_name, f"{epoch}.jpg"))
 
             if (epoch + 1) % self.args.save_interval == 0:
                 self.save_checkpoint(epoch)
