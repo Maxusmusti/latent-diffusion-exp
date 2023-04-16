@@ -95,12 +95,10 @@ def view_entry(entry, debug=False):
         return
     
     label, tensor_image = entry["TEXT"], entry["IMAGE"]
-    IMAGENET_MEAN = (0.485, 0.456, 0.406)
-    IMAGENET_STD = (0.229, 0.224, 0.225)
     try:
         print("\t\t", label)
         tensor_to_image = T.Compose([T.ToPILImage()])
-        plt.imshow(tensor_to_image(unnormalize_tensor(tensor_image, IMAGENET_MEAN, IMAGENET_STD)))
+        plt.imshow(tensor_to_image(unnormalize_tensor(tensor_image, np.array(feature_extractor.image_mean), np.array(feature_extractor.image_std))))
         plt.savefig('./image.png')
         plt.clf()
         time.sleep(0.2)
