@@ -7,7 +7,10 @@ import torch
 from torch import nn, optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import tqdm
+from transformers import ViTMAEForPreTraining
 from data import get_train_loader, get_val_loader
+from diffusion import Diffusion
+from unet import UNet
 
 class Trainer:
     def __init__(self, args):
@@ -15,10 +18,18 @@ class Trainer:
         self.device = args.device
         self.train_loader = get_train_dataloader(args)
         self.val_loader = get_val_dataloader(args)
+
         self.model = UNet().to(self.device)
         self.optimizer = optim.AdamW(self.model.parameters(), lr=args.lr)
         self.loss_fn = nn.MSELoss()
         self.diffusion = Diffusion(image_size=args.image_size, device=self.device)
+        
+        # Pre-Trained autoencoder for image embedding
+        # See: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/models/vit_mae/modeling_vit_mae.py#L964 for forward pass ex
+        ae_pretrained = ViTMAEForPreTraining.from_pretrained("facebook/vit-mae-base")
+        encoder = ae_pretrained.vit
+        decoder = ae_pretrained.decoder
+
         self.logger = SummaryWriter(os.path.join("runs", args.run_name))
         self.train_logs = []
         self.val_logs = []
