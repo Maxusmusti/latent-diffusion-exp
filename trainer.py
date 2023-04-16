@@ -24,6 +24,7 @@ class Trainer:
         self.loss_fn = nn.MSELoss()
         self.diffusion = Diffusion(image_size=args.image_size, device=self.device)
         
+        # Pre-Trained autoencoder for image embedding
         ae_pretrained = ViTMAEForPreTraining.from_pretrained("facebook/vit-mae-base")
 
         self.logger = SummaryWriter(os.path.join("runs", args.run_name))
