@@ -1,5 +1,5 @@
 """
-This module creats a Pytorch DataLoader2 for Laion-5B (https://laion.ai/blog/laion-5b/) and contains related utility functions.
+This module creates a Pytorch DataLoader2 for Laion-5B (https://laion.ai/blog/laion-5b/) and contains related utility functions.
 Laion-5B is a massive dataset popular for training large models like diffusion models.
 LAION released the laion2B-en-joined dataset (https://huggingface.co/datasets/laion/laion2B-en-joined) which we will use here. 
 
@@ -22,33 +22,22 @@ import PIL
 from PIL import Image
 import time
 import torchvision.transforms as T
+from transformers import ViTFeatureExtractor
 
 
-IMAGENET_MEAN = (0.485, 0.456, 0.406)
-IMAGENET_STD = (0.229, 0.224, 0.225)
-
+feature_extractor = ViTFeatureExtractor.from_pretrained("facebook/vit-mae-base")
 
 def load_image_from_url(URL):
     """
     Loads an image from URL using requests package and BytesIO package. Returns image as tensor
         Performs preprocessing so that the channels are normalized and image is resized to 224x224.
-        To normalize, use mean and standard deviation from the ImageNet as a baseline.
-        To resize to 224x224, image is upscaled or downscaled and then cropped down to the center 224x224 pixels
     URL: the URL from which to load the image
     """
     try:
         call = requests.get(URL, timeout=5) # timeout of 5 seconds so we don't hang indefinitely
         image = Image.open(BytesIO(call.content))
-        preprocess = T.Compose([
-            T.Resize(224),
-            T.CenterCrop(224),
-            T.ToTensor(),
-            T.Normalize(
-                mean=IMAGENET_MEAN,
-                std=IMAGENET_STD
-            )
-        ])
-        return preprocess(image)
+        pixel_values = feature_extractor(image, return_tensors="pt").pixel_values[0]
+        return pixel_values
     except:
         return None
     
@@ -80,6 +69,7 @@ def get_dataset(path):
 
 
 # TODO: split this data loader into 85% train, 5% validation, 10% test
+# TODO: limit datset size
 def get_data_loader(path):
     """
     Creates a data loader from the given HuggingFace path
@@ -105,6 +95,8 @@ def view_entry(entry, debug=False):
         return
     
     label, tensor_image = entry["TEXT"], entry["IMAGE"]
+    IMAGENET_MEAN = (0.485, 0.456, 0.406)
+    IMAGENET_STD = (0.229, 0.224, 0.225)
     try:
         print("\t\t", label)
         tensor_to_image = T.Compose([T.ToPILImage()])
