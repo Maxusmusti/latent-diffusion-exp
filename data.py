@@ -23,7 +23,11 @@ from PIL import Image
 import time
 import torchvision.transforms as T
 from transformers import ViTFeatureExtractor
-
+import os
+import torch
+import json
+import torchvision.transforms as transforms
+from torch.utils.data import Dataset, DataLoader
 
 feature_extractor = ViTFeatureExtractor.from_pretrained("facebook/vit-mae-base")
 
@@ -52,9 +56,9 @@ def quality_filters(x):
     return x["pwatermark"] is not None and x["pwatermark"] < 0.8 and x["punsafe"] is not None and x["punsafe"] < 0.5
 
 
-def get_dataset(path):
+def get_iterdatapipe(path):
     """
-    Loads the dataset from the specified HuggingFace path and returns a DataPipe
+    Loads the IterDataPipe from the specified HuggingFace path and returns a DataPipe
     path: the HuggingFace path following https://huggingface.co/datasets/
     """
     data = HuggingFaceHubReader(path) # returns an iterable HuggingFace dataset
@@ -70,12 +74,12 @@ def get_dataset(path):
 
 # TODO: split this data loader into 85% train, 5% validation, 10% test
 # TODO: limit datset size
-def get_data_loader(path):
+def get_data_loader_2(path):
     """
     Creates a data loader from the given HuggingFace path
     path: the HuggingFace path following https://huggingface.co/datasets/
     """
-    dataset = get_dataset(path)
+    dataset = get_iterdatapipe(path)
     reading_service = MultiProcessingReadingService(num_workers=4) # Spawns 4 worker processes to load data from the DataPipe
     data_loader = DataLoader2(dataset, reading_service=reading_service) # Create data loader with the 4 worker processes
     return data_loader
@@ -105,6 +109,61 @@ def view_entry(entry, debug=False):
     except PIL.UnidentifiedImageError:
         print("corrupted")
 
+
+
+image_transforms = transforms.Compose([
+    transforms.Resize((256, 256)),  # Resize the short side to 256, maintaining the aspect ratio
+    transforms.CenterCrop(224),     # Crop the center square of size 224x224 from the resized image
+    transforms.ToTensor(),          # Convert the image to a PyTorch tensor
+    transforms.Normalize(           # Normalize the image tensor using mean and std values for ImageNet
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])
+
+class ImageMetaDataset(Dataset):
+    """
+    A custom dataset class for loading images and their metadata from a specified directory.
+
+    Attributes:
+        root_dir (str): Path to the directory containing the images and metadata.
+        transform (callable, optional): Optional transform to be applied to the image.
+        image_files (List[str]): List of image file names in the directory.
+        metadata_files (List[str]): List of metadata file names in the directory.
+    """
+
+    def __init__(self, root_dir, transform=image_transforms):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.jpg')]
+        self.metadata_files = [f for f in os.listdir(root_dir) if f.endswith('.json')]
+
+        # Ensure the image and metadata files are in the same order
+        self.image_files.sort()
+        self.metadata_files.sort()
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_path = os.path.join(self.root_dir, self.image_files[idx])
+        image = Image.open(img_path).convert('RGB')
+
+        metadata_path = os.path.join(self.root_dir, self.metadata_files[idx])
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+
+        if self.transform: # if you are looking to use default collate option from dataloader, make sure to specify this and change and create equal shape tensors
+            image = self.transform(image)
+        return image, metadata
+
+def load_data(dataset_path, batch_size = 4):
+    train_data = ImageMetaDataset(dataset_path, resolution=256)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False)
+    return train_loader
 
 if __name__ == "__main__":
     data_loader = get_data_loader("laion/laion2B-en-joined")
