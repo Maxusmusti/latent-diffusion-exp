@@ -1,5 +1,6 @@
 import torch.nn as nn
-from vqgan.vqgan import VQModel, default_args
+import torch
+from vqgan import VQModel, default_args
 
 def get_default_args():
     return default_args
@@ -26,7 +27,8 @@ class VQInterface(VQModel):
 
 def pretrained_vqgan():
     args = get_default_args()
+    device = torch.device(args.device)
     ckpt_path = default_args.ckpt_path
-    model = VQInterface(args).cuda() # for GPU
+    model = VQInterface(args).to(device)
     model.init_from_ckpt(ckpt_path)
     return model

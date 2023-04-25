@@ -28,6 +28,8 @@ import torch
 import json
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
+import albumentations
+
 
 feature_extractor = ViTFeatureExtractor.from_pretrained("facebook/vit-mae-base")
 
@@ -131,37 +133,49 @@ class ImageMetaDataset(Dataset):
         metadata_files (List[str]): List of metadata file names in the directory.
     """
 
-    def __init__(self, root_dir, transform=image_transforms):
+    def __init__(self, root_dir, resolution = 256):
         self.root_dir = root_dir
-        self.transform = transform
+        self.resolution = resolution
+
         self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.jpg')]
         self.metadata_files = [f for f in os.listdir(root_dir) if f.endswith('.json')]
-
         # Ensure the image and metadata files are in the same order
         self.image_files.sort()
         self.metadata_files.sort()
 
+        self.rescaler = albumentations.SmallestMaxSize(max_size=self.resolution)
+        self.cropper = albumentations.CenterCrop(height=self.resolution, width=self.resolution)
+        self.preprocessor = albumentations.Compose([self.rescaler, self.cropper])
+
     def __len__(self):
         return len(self.image_files)
+
+    def preprocess_image(self, image_path):
+        image = Image.open(image_path)
+        if not image.mode == "RGB":
+            image = image.convert("RGB")
+        image = np.array(image).astype(np.uint8)
+        image = self.preprocessor(image=image)["image"]
+        image = (image / 127.5 - 1.0).astype(np.float32)
+        image = image.transpose(2, 0, 1)
+        return image
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
         img_path = os.path.join(self.root_dir, self.image_files[idx])
-        image = Image.open(img_path).convert('RGB')
+        image = self.preprocess_image(img_path)
 
         metadata_path = os.path.join(self.root_dir, self.metadata_files[idx])
         with open(metadata_path, 'r') as f:
             metadata = json.load(f)
-
-        if self.transform: # if you are looking to use default collate option from dataloader, make sure to specify this and change and create equal shape tensors
-            image = self.transform(image)
+        
         return image, metadata
 
-def load_data(dataset_path, batch_size = 4):
-    train_data = ImageMetaDataset(dataset_path)
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False)
+def load_data(args):
+    train_data = ImageMetaDataset(args.dataset_path, resolution=256)
+    train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=False)
     return train_loader
 
 if __name__ == "__main__":
