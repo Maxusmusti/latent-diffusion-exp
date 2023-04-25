@@ -99,9 +99,7 @@ class Trainer:
         self.val_logs = checkpoint['val_logs']
 
     def train(self):
-        print("NOW HERE")
         for epoch in range(self.args.epochs):
-            print("INSIDE")
             print(f"Starting epoch {epoch}:")
             self.train_epoch(epoch)
             #self.val_epoch(epoch)  TO BE FIXED LATER
@@ -130,7 +128,6 @@ def main():
     args = parser.parse_args()
 
     trainer = Trainer(args)
-    print("HERE")
     trainer.train()
 
 if __name__ == "__main__":
