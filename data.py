@@ -22,30 +22,12 @@ import PIL
 from PIL import Image
 import time
 import torchvision.transforms as T
-from transformers import ViTFeatureExtractor
 import os
 import torch
 import json
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader
 import albumentations
-
-
-feature_extractor = ViTFeatureExtractor.from_pretrained("facebook/vit-mae-base")
-
-def load_image_from_url(URL):
-    """
-    Loads an image from URL using requests package and BytesIO package. Returns image as tensor
-        Performs preprocessing so that the channels are normalized and image is resized to 224x224.
-    URL: the URL from which to load the image
-    """
-    try:
-        call = requests.get(URL, timeout=5) # timeout of 5 seconds so we don't hang indefinitely
-        image = Image.open(BytesIO(call.content))
-        pixel_values = feature_extractor(image, return_tensors="pt").pixel_values[0]
-        return pixel_values
-    except:
-        return None
     
     
 def quality_filters(x):
@@ -56,34 +38,6 @@ def quality_filters(x):
     x: Row in dataset
     """
     return x["pwatermark"] is not None and x["pwatermark"] < 0.8 and x["punsafe"] is not None and x["punsafe"] < 0.5
-
-
-def get_iterdatapipe(path):
-    """
-    Loads the IterDataPipe from the specified HuggingFace path and returns a DataPipe
-    path: the HuggingFace path following https://huggingface.co/datasets/
-    """
-    data = HuggingFaceHubReader(path) # returns an iterable HuggingFace dataset
-    data = data.filter(quality_filters) # filters out images with watermark and images that are unsafe
-    data = data.shuffle().sharding_filter() # allows DataPipe to be sharded
-    data = data.slice(index=["TEXT", "URL"]) # get columns by index
-    data = data.map(fn=load_image_from_url, input_col="URL", output_col="IMAGE") # load each image and put it in a new "IMAGE" column
-    data = data.filter(filter_fn=lambda x: x is not None, input_col="IMAGE") # filter out rows with images that couldn't be loaded
-    data = data.drop("URL") # drop this column since we loaded images and don't need URL anymore
-    data = data.batch(20) # Create mini-batches of data of size 20
-    return data
-
-
-# TODO: limit datset size
-def get_data_loader_2(path):
-    """
-    Creates a data loader from the given HuggingFace path
-    path: the HuggingFace path following https://huggingface.co/datasets/
-    """
-    dataset = get_iterdatapipe(path)
-    reading_service = MultiProcessingReadingService(num_workers=4) # Spawns 4 worker processes to load data from the DataPipe
-    data_loader = DataLoader2(dataset, reading_service=reading_service) # Create data loader with the 4 worker processes
-    return data_loader
 
 
 def unnormalize_tensor(tensor, mean, std):
@@ -177,12 +131,3 @@ def load_data(dataset_path, batch_size, resolution, num_workers):
     train_data = ImageMetaDataset(dataset_path, resolution=resolution)
     train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     return train_loader
-
-if __name__ == "__main__":
-    data_loader = get_data_loader("laion/laion2B-en-joined")
-
-    for i, batch in enumerate(data_loader):
-        print("Batch", i)
-        for j, entry in enumerate(batch):
-            print("\tEntry", j)
-            view_entry(entry, debug=True)
