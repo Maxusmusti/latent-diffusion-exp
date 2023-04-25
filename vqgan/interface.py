@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from vqgan import VQModel, default_args
+from vqgan.vqgan import VQModel, default_args
 
 def get_default_args():
     return default_args
