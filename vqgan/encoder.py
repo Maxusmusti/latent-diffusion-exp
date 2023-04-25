@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from modules import ResnetBlock, Downsample, make_attn, Normalize, nonlinearity
+from vqgan.modules import ResnetBlock, Downsample, make_attn, Normalize, nonlinearity
 
 
 

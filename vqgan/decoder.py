@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from modules import make_attn, ResnetBlock, Upsample, Normalize, nonlinearity
+from vqgan.modules import make_attn, ResnetBlock, Upsample, Normalize, nonlinearity
 
 class Decoder(nn.Module):
     def __init__(self, *, ch, out_ch, ch_mult=(1,2,4,8), num_res_blocks,

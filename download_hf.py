@@ -32,8 +32,8 @@ Examples:
     For laion/laion-art dataset:
     python download_hf.py --dataset_name laion/laion-art --url_key URL --metadata_columns TEXT WIDTH HEIGHT similarity LANGUAGE hash pwatermark punsafe aesthetic --rows 1000 --output_dir laion_art_images --workers 8
 
-    For huggingface/wikiart dataset:
-    python download_hf.py --dataset_name huggingface/wikiart --image_bytes_key image --metadata_columns artist genre style --rows 1000 --output_dir wikiart_images --workers 8
+    For huggan/wikiart dataset:
+    python download_hf.py --dataset_name huggan/wikiart --image_bytes_key image --metadata_columns artist genre style --rows 1000 --output_dir wikiart_images --workers 8
 """
 
 def download_image_and_metadata(row, output_dir, metadata_columns, image_bytes_key, url_key, idx):
