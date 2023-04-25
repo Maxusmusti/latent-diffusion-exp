@@ -129,5 +129,5 @@ class ImageMetaDataset(Dataset):
 
 def load_data(dataset_path, batch_size, resolution, num_workers):
     train_data = ImageMetaDataset(dataset_path, resolution=resolution)
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=False)
     return train_loader

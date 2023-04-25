@@ -1,31 +1,31 @@
 import torch
+import torch.nn as nn
 import tqdm.notebook as tqdm
 
-class Diffusion:
+class Diffusion(nn.Module):
     def __init__(self, image_size = (32, 32), num_steps = 1000, beta_start = 1e-4, beta_end = 0.02, device = "cuda"):
+        super().__init__()
         self.width = image_size[0]
         self.height = image_size[1]
         self.num_steps = num_steps
         self.beta_start = beta_start
         self.beta_end = beta_end
-        self.device = device
-        self.prepare_noise_schedule()
-
-    def prepare_noise_schedule(self):
-        self.beta = torch.linspace(self.beta_start, self.beta_end, self.num_steps).to(self.device)
+        self.beta = torch.linspace(self.beta_start, self.beta_end, self.num_steps)
         self.alpha = 1. - self.beta
-        self.alpha_hat = torch.cumprod(self.alpha, dim = 0)
+       # self.alpha_hat = torch.cumprod(sel
 
 
     def forward(self, x, t):
-        alpha_hat_t = self.alpha_hat[t].unsqueeze(1).unsqueeze(2).unsqueeze(3)  # Add three new dimensions
+        alpha_hat = torch.cumprod(self.alpha, dim = 0).to(x)
+        alpha_hat_t = alpha_hat[t]
+        alpha_hat_t = alpha_hat_t.unsqueeze(1).unsqueeze(2).unsqueeze(3)  # Add three new dimensions
         eps = torch.randn_like(x)
         return torch.sqrt(alpha_hat_t) * x + torch.sqrt(1 - alpha_hat_t) * eps, eps
 
     def sample_n_images(self, model, n):
         model.eval()
         with torch.no_grad():
-            x = torch.randn((n, 3, self.height, self.width)).to(self.device)
+            x = torch.randn((n, 3, self.height, self.width))
             for i in tqdm(reversed(range(1, self.num_steps)), position=0):
                 t = torch.full((n,), i, dtype=torch.long, device=self.device)
                 predicted_noise = model(x, t)

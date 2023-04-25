@@ -20,6 +20,7 @@ class DiffusionTrainer(pl.LightningModule):
     def __init__(self, args):
         super(DiffusionTrainer, self).__init__()
         self.args = args
+        print(self.device)
         self.diffusion = Diffusion(image_size=args.image_size, device=args.device)
         self.vqgan = pretrained_vqgan().eval()
         for param in self.vqgan.parameters():
@@ -36,7 +37,9 @@ class DiffusionTrainer(pl.LightningModule):
         return optim.AdamW(self.model.parameters(), lr=self.args.lr)
 
     def log_images(self, noised_image, reconstructed_image, orig_image, predicted_noise, step, stage, image_type):
-        grid = make_grid(torch.cat([noised_image, reconstructed_image, orig_image, predicted_noise]), nrow=4)
+        noised_image, reconstructed_image, orig_image, predicted_noise = noised_image.mul(0.5).add(0.5), reconstructed_image.mul(0.5).add(0.5), orig_image.mul(0.5).add(0.5), predicted_noise.mul(0.5).add(0.5)
+        grid = make_grid(torch.cat([noised_image, reconstructed_image, orig_image, predicted_noise]), nrow=2)
+        
         self.logger.experiment.add_image(f"{stage}/{image_type}_Images", grid, global_step=step)
 
     def training_step(self, batch, batch_idx):
@@ -116,7 +119,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_interval', default=100, type=int)
     parser.add_argument('--image_size', default=[32, 32], type=int, nargs=2)
     parser.add_argument('--log_image_interval', default=50, type=int)
-    parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--checkpoint_path', default=None, type=str)
 
     args = parser.parse_args()
