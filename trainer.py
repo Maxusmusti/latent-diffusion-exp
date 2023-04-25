@@ -7,7 +7,7 @@ import torch
 from torch import nn, optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import tqdm
-from transformers import ViTMAEForPreTraining
+from vqgan.interface import pretrained_vqgan
 from data import get_train_loader, get_val_loader
 from diffusion import Diffusion
 from unet import UNet
@@ -24,11 +24,9 @@ class Trainer:
         self.loss_fn = nn.MSELoss()
         self.diffusion = Diffusion(image_size=args.image_size, device=self.device)
         
-        # Pre-Trained autoencoder for image embedding
-        # See: https://github.com/huggingface/transformers/blob/v4.28.1/src/transformers/models/vit_mae/modeling_vit_mae.py#L964 for forward pass ex
-        ae_pretrained = ViTMAEForPreTraining.from_pretrained("facebook/vit-mae-base")
-        self.encoder = ae_pretrained.vit
-        self.decoder = ae_pretrained.decoder
+        self.vqgan = pretrained_vqgan()
+        self.encode = self.vqgan.encode # returns pre quantized latent vector
+        self.decode = self.vqgan.decode # can either force quantization or not (specify with quantize_first)
 
         self.logger = SummaryWriter(os.path.join("runs", args.run_name))
         self.train_logs = []
@@ -43,8 +41,8 @@ class Trainer:
         for i, (images, _) in enumerate(pbar):
             images = images.to(self.device)
             t = torch.randint(low=1, high=self.diffusion.num_steps, size=(images.shape[0],)).to(self.device)
-            images = self.encoder(images).last_hidden_state
-            x_t, noise = self.diffusion.forward(images, t)
+            encoded_images = self.encode(images)
+            x_t, noise = self.diffusion.forward(encoded_images, t)
             predicted_noise = self.model(x_t, t)
             loss = self.loss_fn(noise, predicted_noise)
 
@@ -68,8 +66,8 @@ class Trainer:
             for i, (images, _) in enumerate(pbar):
                 images = images.to(self.device)
                 t = torch.randint(low=1, high=self.diffusion.num_steps, size=(images.shape[0],)).to(self.device)
-                images = self.encoder(images).last_hidden_state
-                x_t, noise = self.diffusion.forward(images, t)
+                encoded_images = self.encoder(images).last_hidden_state
+                x_t, noise = self.diffusion.forward(encoded_images, t)
                 predicted_noise = self.model(x_t, t)
                 loss = self.loss_fn(noise, predicted_noise)
 
