@@ -72,7 +72,6 @@ def get_iterdatapipe(path):
     return data
 
 
-# TODO: split this data loader into 85% train, 5% validation, 10% test
 # TODO: limit datset size
 def get_data_loader_2(path):
     """
