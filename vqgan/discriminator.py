@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from modules import ActNorm
+from vqgan.modules import ActNorm
 import functools
 
 class NLayerDiscriminator(nn.Module):

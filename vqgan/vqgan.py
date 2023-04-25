@@ -46,11 +46,11 @@ default_args = Namespace(
     ckpt_path = 'model.ckpt',
     ignore_keys = []
 )
-from encoder import Encoder
-from decoder import Decoder
-from quantizer import VectorQuantizer
-from loss import VQLPIPSWithDiscriminator
-from discriminator import NLayerDiscriminator
+from vqgan.encoder import Encoder
+from vqgan.decoder import Decoder
+from vqgan.quantizer import VectorQuantizer
+from vqgan.loss import VQLPIPSWithDiscriminator
+from vqgan.discriminator import NLayerDiscriminator
 
 class VQModel(pl.LightningModule):
     def __init__(self,

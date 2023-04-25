@@ -1,5 +1,5 @@
-from discriminator import NLayerDiscriminator
-from lpips import LPIPS
+from vqgan.discriminator import NLayerDiscriminator
+from vqgan.lpips import LPIPS
 
 import torch
 import torch.nn as nn
