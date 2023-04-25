@@ -14,6 +14,7 @@ from diffusion import Diffusion
 from unet import UNet
 import pytorch_lightning as pl
 from torchvision.utils import make_grid
+from argparse import Namespace
 
 class DiffusionTrainer(pl.LightningModule):
     def __init__(self, args):
