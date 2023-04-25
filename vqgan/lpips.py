@@ -5,7 +5,7 @@ from tqdm import tqdm
 import torch.nn as nn
 from torchvision.models import vgg16
 import torchvision.models as models
-from collevtions import namedtuple
+from collections import namedtuple
 
 
 URL_MAP = {
