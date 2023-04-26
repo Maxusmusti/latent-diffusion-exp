@@ -29,8 +29,9 @@ class DiffusionTrainer(pl.LightningModule):
         self.decode = self.vqgan.decode
 
         self.model = UNet()
-
-    def forward(self, x_t, t):
+   
+   
+   def forward(self, x_t, t):
         return self.model(x_t, t)
 
     def configure_optimizers(self):
@@ -127,4 +128,4 @@ if __name__ == '__main__':
     # Example of how to train the DiffusionTrainer using PyTorch Lightning
     trainer = pl.Trainer(max_epochs=args.epochs, accelerator = 'gpu', limit_val_batches=args.val_batch_per_epoch, log_every_n_steps=1)
     diffusion_trainer = DiffusionTrainer(args)
-    trainer.fit(diffusion_trainer, args.checkpoint_path)
+    trainer.fit(diffusion_trainer, ckpt_path = args.checkpoint_path)
