@@ -12,6 +12,8 @@ class SentenceEmbedder():
         return embeddings
 
 def run_example():
+    # From https://www.sbert.net/
+    
     sentences = ['Hi', 'This framework generates embeddings for each input sentence', 'Sentences are passed as a list of string.', 'The quick brown fox jumps over the lazy dog.']
     se = SentenceEmbedder()
     embeddings = se.encode_sentences(sentences)
