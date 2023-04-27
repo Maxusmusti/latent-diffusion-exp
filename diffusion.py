@@ -29,21 +29,11 @@ class Diffusion(nn.Module):
         with torch.no_grad():
             if x is None:
                 x = torch.randn((n, 4, self.height, self.width)).to(self.device)
-            t = torch.full((n,), self.num_steps - 1,  dtype = torch.long, device = self.device)
-            print(t)
-            print(t.shape, "T")
+            t = torch.full((n,), self.num_steps - 1, dtype = torch.long, device = self.device)
             x, noise = self.forward(x, t)
-            print(x.shape, "X")
             for i in tqdm(reversed(range(1, self.num_steps)), position=0):
-                print(i)
                 t = torch.full((n,), i, dtype=torch.long, device=self.device)
-               # t = torch.ones((n,), device = self.device, dtype = torch.long)
-               # print(t)
-               # t = t * i
-               # print(t)
-                print(t, t.shape, "NEW T")
                 predicted_noise = model(x, t)
-                print(predicted_noise.shape, "noise")
                 alpha = self.alpha[t].view(-1, 1, 1, 1)
                 alpha_hat = self.alpha_hat[t].view(-1, 1, 1, 1)
                 beta = self.beta[t].view(-1, 1, 1, 1)
@@ -55,8 +45,7 @@ class Diffusion(nn.Module):
                 x = x - temp2
                # x = x - temp * predicted_noise
                 x = x / torch.sqrt(alpha) + torch.sqrt(beta) * noise
-        print(x.shape)
-        x = ae.decode(x)
+            x = ae.decode(x)
         model.train()
 
         x = x.clamp(-1,1).mul(0.5).add(0.5)
@@ -81,7 +70,6 @@ if __name__ == "__main__":
     for key in stdict.keys():
         if 'model' in key and 'perceptual_loss' not in key:
             new_dict[key[6:]] = stdict[key]
-    print(new_dict.keys())
     unet.load_state_dict(new_dict)
     diff = Diffusion(device = "cuda")
     if args.image_path:

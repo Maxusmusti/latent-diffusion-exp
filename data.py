@@ -14,8 +14,6 @@ References for the code:
 
 import numpy as np
 from matplotlib import pyplot as plt
-from torchdata.dataloader2 import DataLoader2, MultiProcessingReadingService
-from torchdata.datapipes.iter import HuggingFaceHubReader
 from io import BytesIO
 import requests
 import PIL
