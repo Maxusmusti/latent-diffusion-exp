@@ -32,11 +32,12 @@ Additionally, if you are training, you will need to download an appropriate data
 To train your own UNet model, the simplest way is to run the following:
  - `python trainer.py --num_workers <NUM_WORKERS>`
  - For hyperparameters, checkpoint loading, and other config args, see all options with `python trainer.py <-h>/<--help>`
+ - For conditional generation training, use the `--conditional` flag
  - The VQGAN can also be retrained if desired via `python vqgan.py`
 
 To generate sample artworks, simply run the following:
  - `python diffusion.py --unet_ckpt_path <UNET_MODEL>`
- - (Add a command to run for conditional)
+ - (Upcoming command to run for conditional)
     
 ## Showcase
 
