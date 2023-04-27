@@ -53,9 +53,10 @@ class UNet(nn.Module):
             self.condlayers[key] = condlayer
         return condlayer(x, c)
 
-    def forward(self, x, t, c, puncond=0.1):
-        condition_toggle = False if random.uniform(0,1) < puncond else True # Discards the condition with probability puncond
-        x = self.apply_condition(x, c, condition_toggle, 1) # TODO: add this to a few other places in this method. Make sure to change the key every time
+    def forward(self, x, t, c=None, puncond=0.1):
+        if c is not None:
+            condition_toggle = False if random.uniform(0,1) < puncond else True # Discards the condition with probability puncond
+            x = self.apply_condition(x, c, condition_toggle, 1) # TODO: add this to a few other places in this method. Make sure to change the key every time
 
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
