@@ -29,7 +29,7 @@ class Diffusion(nn.Module):
         with torch.no_grad():
             if x is None:
                 x = torch.randn((n, 4, self.height, self.width)).to(self.device)
-            t = torch.full((n,), self.num_steps,  dtype = torch.long, device = self.device)
+            t = torch.full((n,), self.num_steps - 1,  dtype = torch.long, device = self.device)
             print(t)
             print(t.shape, "T")
             x, noise = self.forward(x, t)
