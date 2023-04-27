@@ -1,4 +1,4 @@
-# Latent Diffusion Models for Conditional Image Generation
+# Latent Diffusion Models for Image Generation (Noise2Art)
 
 ## Authors
 
@@ -7,36 +7,41 @@ Rami Matar (rhm2142), Mustafa Eyceoz (me2680), Justin Lee (jjl2245)
 
 ## Project Summary
 
-Diffusion models are very effective learners of data distributions that learn to denoise Gaussian-blurred images and reverse the steps of the diffusion process. The diffusion process is essentially a noising process in which Gaussian noise is applied to an input image repeatedly for T steps. Initially [2], diffusion models trained a sequence of T autoencoders to learn the denoising process in the pixel space. A much more computationally efficient variant of the diffusion model, known as the Latent Diffusion Model (LDM) works by performing the diffusion process within the latent space of a pre-trained autoencoder [1]. These models have shown very competitive results on many image synthesis tasks, and can further allow for learning many conditional distributions simultaneously without much change to training.
+The goal of this project is to enable accessible, beautiful art generation (and conditional art generation) via latent diffusion models. Through a combination of a VQGAN, Diffusion, a UNet model with self-attention layers, and additional training/transfer-learning techniques, our system can convert any generated small noise pattern (32x32x4) into a hand-painted masterpiece. While small, compact, and fast, the art quality is still capable of making one stare and ponder. Additionally, users may soon be able to input captions as inspiration for their generated works.
 
-The goal of our project is to build a latent diffusion model for conditional image synthesis. Naturally, the learned distribution of a diffusion model is effective at allowing the modification of images in more semantically meaningful ways. We plan to train the model to generate images with a conditioned style or text-description. Our first goal will be to learn to generate images based on a style; to do that, we inject the embedding generated from a (potentially separate) encoder into different parts of the denoising networks through cross-attention. Our second goal will be to generate images from text input using a similar process with a pretrained language encoder in order to obtain an embedding which can be treated similarly. If time allows, we may explore the relationship between LDMs and a model like CLIP.
+For more details and information, see the project write-up: `paper.pdf`
 
 ## Approach
 
-- **Architecture:** We will utilize a pre-trained image autoencoder and learn the reverse diffusion process inside of its latent space. Our general architecture will involve an encoder to process the input into the latent space, followed by a sequence of scheduled Gaussian noise to be added to the image until it effectively looks like Gaussian noise. To learn the denoising, we define a U-Net network to learn to reconstruct the image from its noisy representation. Conditional inputs will be processed through a pretrained domain-specific encoder and injected into the U-Net layers before and during denoising through cross attention layers. After the T denoising U-Nets, the reconstructed latent image representation is reconstructed into image space through the pre-trained decoder.  
-- **Training objective:** We will train the model in two steps. In the first step, we train with supervised data and a reconstruction loss. In the second, we will expand the work of the original paper [1] by a self-supervised training approach with a KL divergence regularization term in the loss.
-- **Dataset:** We will use a subset of LAION-400M dataset, a massive dataset popular for training large models like diffusion models. We will also use a large image-caption dataset.
+- **Training:** By performing transfer-learning on a VQGAN (VQVAE + discriminator) using art-specific datasets, we gain the ability to encode images into a (32x32x4) latent space (and decode accordingly). From there, we add noise via diffusion to the latent embedding, and then pass the noisy latent image into our UNet, whose task is to predict the noise. Loss is calculated based on MSE difference between actual and predicted noise. When noise is predicteed, it can then be removed from our noisy image to retrieve our original latent embedding, and consequently our original image.
+- **Use:** Once the UNet is trained, given any compact noise in the latent space, the noise prediction allows us to clean and decode what is left, which is the beatiful art that the UNet has learned to recognize as significant, rather than noise. This allows us to infinitely generate beautiful works with little computational overhead. Additionally, with conditional art generated, these pieces can be guided by the influence of a caption.
+- **Dataset:** We use two popular open-source art datasets for our work: WikiArt (for VQGAN transfer-learning and UNet training), and LAION Art (for conditional UNet training)
+  - WikiArt: https://huggingface.co/datasets/huggan/wikiart
+  - LAION Art: https://huggingface.co/datasets/laion/laion-art
 
-
-## Tools
-
-- Python3 environment
-- Python libraries: 
-    - ```TK```
-    - ```TK```
 ## Usage
-**Run demo**
+Before running any scripts, ensure you have the proper requirements installed
+ - `pip install -r requirements.txt`
 
-```
-$ python3 TK.py
-```
+Additionally, if you are training, you will need to download an appropriate dataset:
+ - For huggan/wikiart dataset: ```
+    python download_hf.py --dataset_name huggan/wikiart --image_bytes_key image --metadata_columns artist genre style --rows <NUM_SAMPLES> --output_dir wikiart_images --workers <NUM_WORKERS> ```
+ - For laion/laion-art dataset: ```
+    python download_hf.py --dataset_name laion/laion-art --url_key URL --metadata_columns TEXT WIDTH HEIGHT similarity LANGUAGE hash pwatermark punsafe aesthetic --rows <NUM_SAMPLES> --output_dir laion_art_images --workers <NUM_WORKERS>```
 
-**Description**
+To train your own UNet model, the simplest way is to run the following:
+ - `python trainer.py --num_workers <NUM_WORKERS>`
+ - For hyperparameters, checkpoint loading, and other config args, see all options with `python trainer.py <-h>/<--help>`
+ - The VQGAN can also be retrained if desired via `python vqgan.py`
 
-- The demo scripts do the following...
-    - TK
-    - TK
+To generate sample artworks, simply run the following:
+ - `python diffusion.py --unet_ckpt_path <UNET_MODEL>`
+ - (Add a command to run for conditional)
     
+## Showcase
+
+(Add some example art here)
+
 ## References
 
 1. Rombach, Robin, et al. "High-resolution image synthesis with latent diffusion models." Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition. 2022.
