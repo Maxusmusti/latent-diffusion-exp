@@ -1,1 +1,10 @@
+torch
+torch-vision
+pytorch-lightning
+datasets
+transformers
+einops
+optuna
 sentence-transformers==2.2.2
+matplotlib
+albumentations
