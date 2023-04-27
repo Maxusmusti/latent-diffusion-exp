@@ -40,7 +40,7 @@ To generate sample artworks, simply run the following:
     
 ## Showcase
 
-(Add some example art here)
+![Screenshot 2023-04-27 143453](https://user-images.githubusercontent.com/38268856/234961352-33bfafad-035f-42ad-9f04-2122a020de55.png)
 
 ## References
 
