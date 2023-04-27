@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import random
+import numpy as np
 
 
 class UNet(nn.Module):
@@ -28,6 +30,8 @@ class UNet(nn.Module):
         self.sa6 = SelfAttention(64, 32)
         self.outc = nn.Conv2d(64, c_out, kernel_size=1)
 
+        self.condlayers = dict()
+
     def pos_encoding(self, t, channels):
         inv_freq = 1.0 / (
             10000
@@ -38,7 +42,21 @@ class UNet(nn.Module):
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
         return pos_enc
 
-    def forward(self, x, t):
+    def apply_condition(self, x, c, condition_toggle, key):
+        if not condition_toggle:
+            return x
+        
+        if key in self.condlayers:
+            condlayer = self.condlayers[key]
+        else:
+            condlayer = ConditionalLayer(c.shape, x.shape)
+            self.condlayers[key] = condlayer
+        return condlayer(x, c)
+
+    def forward(self, x, t, c, puncond=0.1):
+        condition_toggle = False if random.uniform(0,1) < puncond else True # Discards the condition with probability puncond
+        x = self.apply_condition(x, c, condition_toggle, 1) # TODO: add this to a few other places in this method. Make sure to change the key every time
+
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
         x1 = self.inc(x)
@@ -153,3 +171,15 @@ class Up(nn.Module):
         x = self.conv(x)
         emb = self.emb_layer(t)[:, :, None, None].repeat(1, 1, x.shape[-2], x.shape[-1])
         return x + emb
+
+class ConditionalLayer(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super().__init__()
+        self.layer = nn.Sequential(
+            nn.Linear(np.prod(input_dim), np.prod(output_dim)),
+            nn.Unflatten(1, output_dim)
+        )
+        
+    def forward(self, x, c):
+        cond = self.layer(c)[0]
+        return x + cond
