@@ -177,10 +177,13 @@ class ConditionalLayer(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
         self.layer = nn.Sequential(
-            nn.Linear(np.prod(input_dim), np.prod(output_dim)),
-            nn.Unflatten(1, output_dim)
+            # input dim is 384. output dim is 4*32*32. Ignores the batch dimension (the first dimension)
+            nn.Linear(input_dim[-1], np.prod(output_dim[1:]))
         )
+        print(self.layer)
         
     def forward(self, x, c):
-        cond = self.layer(c)[0]
-        return x + cond
+        cond = self.layer(c) # transform the batch_size x 384 text embeddings into batch_size x 4*32*32
+        cond = torch.reshape(cond, (cond.shape[0], *x.shape[1:])) # reshapes it into batch_size x 4 x 32 x 32
+        added = x.to('cpu') + cond
+        return added.to('cuda:0')
