@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import os
+import copy
 import torch
 from torch import nn, optim
 from torch.utils.tensorboard import SummaryWriter
@@ -15,6 +16,21 @@ from unet import UNet
 import pytorch_lightning as pl
 from torchvision.utils import make_grid
 from argparse import Namespace
+
+
+class EMA:
+    def __init__(self, beta):
+        self.beta = beta
+        self.step = 0
+
+    def step_ema(self, model, ema_model, start_step = 50):
+        self.step += 1
+        if self.step < start_step:
+            ema_model.load_state_dict(model.state_dict())
+            return
+        for current_param, ema_param in zip(model.parameters(), ema_model.parameters()):
+            current_weight, ema_weight = current_param.data, ema_param.data
+            ema_param.data = self.beta * ema_weight + (1 - self.beta) * current_weight
 
 
 
@@ -29,11 +45,11 @@ class DiffusionTrainer(pl.LightningModule):
             param.requires_grad = False
         self.encode = self.vqgan.encode
         self.decode = self.vqgan.decode
-
+        self.ema = EMA(0.995)
         self.model = UNet()
+        self.ema_model = copy.deepcopy(self.model).eval().requires_grad_(False)
    
-   
-   def forward(self, x_t, t):
+    def forward(self, x_t, t):
         return self.model(x_t, t)
 
     def configure_optimizers(self):
@@ -65,6 +81,23 @@ class DiffusionTrainer(pl.LightningModule):
         self.log("Train/MSE", loss)
         self.log("mse", loss, prog_bar=True, logger=False)  # Add this line
         return {"loss": loss}
+
+    def optimizer_step(self, *args, **kwargs):
+        super().optimizer_step(*args, **kwargs)
+        self.ema.step_ema(self.model, self.ema_model)
+
+
+    def on_train_epoch_end(self):
+        self.diffusion.device = self.device
+        if self.device == torch.device('cuda:0'):
+            with torch.no_grad():
+                sampled_images = self.diffusion.sample_n_images(self.vqgan, self.model, 2)
+                ema_sampled_images = self.diffusion.sample_n_images(self.vqgan, self.ema_model, 2)
+                self.logger.experiment.add_images("EOE samples - pixel", sampled_images, self.trainer.current_epoch, dataformats = 'NCHW')
+                self.logger.experiment.add_images("EOE EMA samples - pixel", ema_sampled_images, self.trainer.current_epoch, dataformats = 'NCHW')
+            
+
+
 
     def validation_step(self, batch, batch_idx):
         images, _ = batch
@@ -113,7 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('--run_name', default='diff', type=str)
     parser.add_argument('--orig_resolution', default=256, type=int)
     parser.add_argument('--epochs', default=10, type=int)
-    parser.add_argument('--batch_size', default=6, type=int)
+    parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--dataset_path', default='wikiart_images', type=str)
     parser.add_argument('--val_dataset_path', default='wikiart_images', type=str)
     parser.add_argument('--device', default='cuda', type=str)
@@ -124,10 +157,11 @@ if __name__ == '__main__':
     parser.add_argument('--log_image_interval', default=50, type=int)
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--checkpoint_path', default=None, type=str)
+    parser.add_argument('--train_batches_per_epoch', default = 1000, type = int)
 
     args = parser.parse_args()
 
     # Example of how to train the DiffusionTrainer using PyTorch Lightning
-    trainer = pl.Trainer(max_epochs=args.epochs, accelerator = 'gpu', limit_val_batches=args.val_batch_per_epoch, log_every_n_steps=1)
+    trainer = pl.Trainer(limit_train_batches = args.train_batches_per_epoch, max_epochs=args.epochs, accelerator = 'gpu', limit_val_batches=args.val_batch_per_epoch, log_every_n_steps=1)
     diffusion_trainer = DiffusionTrainer(args)
     trainer.fit(diffusion_trainer, ckpt_path = args.checkpoint_path)

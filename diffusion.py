@@ -24,8 +24,8 @@ class Diffusion(nn.Module):
         return torch.sqrt(alpha_hat_t) * x + torch.sqrt(1 - alpha_hat_t) * eps, eps
 
     def sample_n_images(self, ae, model, n, x = None):
-        model.eval()
-         
+        model.eval().to(self.device)
+        
         with torch.no_grad():
             if x is None:
                 x = torch.randn((n, 4, self.height, self.width)).to(self.device)
