@@ -39,7 +39,7 @@ class DiffusionTrainer(pl.LightningModule):
         super(DiffusionTrainer, self).__init__()
         self.args = args
         print(self.device)
-        self.diffusion = Diffusion(image_size=args.image_size, device=args.device)
+        self.diffusion = Diffusion(cosine = args.cosine_scheduler, image_size=args.image_size, device=args.device)
         self.vqgan = pretrained_vqgan().eval()
         for param in self.vqgan.parameters():
             param.requires_grad = False
@@ -60,6 +60,12 @@ class DiffusionTrainer(pl.LightningModule):
         grid = make_grid(torch.cat([noised_image, reconstructed_image, orig_image, predicted_noise]), nrow=2)
         
         self.logger.experiment.add_image(f"{stage}/{image_type}_Images", grid, global_step=step)
+
+
+    def on_fit_start(self, *args, **kwargs):
+        super().on_fit_start(*args, **kwargs)
+        self.diffusion.device = self.device
+        self.diffusion.noise_schedule()
 
     def training_step(self, batch, batch_idx):
         images, _ = batch
@@ -158,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', default=0, type=int)
     parser.add_argument('--checkpoint_path', default=None, type=str)
     parser.add_argument('--train_batches_per_epoch', default = 1000, type = int)
-
+    parser.add_argument('--cosine_scheduler', default = False, type = bool)
     args = parser.parse_args()
 
     # Example of how to train the DiffusionTrainer using PyTorch Lightning

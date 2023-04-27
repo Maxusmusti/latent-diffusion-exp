@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-
+import numpy as np
 class Diffusion(nn.Module):
-    def __init__(self, image_size = (32, 32), num_steps = 1000, beta_start = 1e-4, beta_end = 0.02, device = "cuda"):
+    def __init__(self, cosine = False, image_size = (32, 32), num_steps = 1000, beta_start = 1e-4, beta_end = 0.02, device = "cuda"):
         super().__init__()
         self.width = image_size[0]
         self.height = image_size[1]
@@ -14,11 +14,33 @@ class Diffusion(nn.Module):
         self.alpha = 1. - self.beta
         self.alpha_hat = torch.cumprod(self.alpha, dim = 0).to(device)
         self.device = device
-
+        self.cosine = cosine
+      #  self.senoise_schedule()
+    def noise_schedule(self):
+        print("noise schedule INIT ", self.device)
+        if self.cosine:
+            print("Using Cosine Scheduler")
+            # following the equation from Improved Denoising Diffusion Probabilistic Models
+            s = 8e-3 
+            timesteps = torch.arange(self.num_steps + 1, dtype = torch.float64, device = self.device) / self.num_steps + s
+            alphas = torch.cos(timesteps / (1 + s) * np.pi / 2).pow(2)
+            self.alpha_hat = alphas / alphas[0]
+            betas = 1 - alphas[1:] / alphas[:-1]
+            self.betas = torch.clip(betas, min = 0, max = 0.999)
+            self.alphas = 1. - self.betas 
+            self.betas = self.betas.float()
+            self.alphas = self.alphas.float()
+            self.alpha_hat = self.alpha_hat.float()
+            if self.device == torch.device('cuda:0'):
+                print(self.betas, self.alphas, self.alpha_hat)
+        else:
+            self.betas = torch.linspace(self.beta_start, self.beta_end, self.num_steps, device = self.device)
+            self.alphas = 1. - self.betas
+            self.alpha_hat = torch.cumprod(self.alphas, dim = 0)
 
     def forward(self, x, t):
-        alpha_hat = torch.cumprod(self.alpha, dim = 0).to(x)
-        alpha_hat_t = alpha_hat[t]
+       # alpha_hat = torch.cumprod(self.alpha, dim = 0).to(x)
+        alpha_hat_t = self.alpha_hat[t]
         alpha_hat_t = alpha_hat_t.unsqueeze(1).unsqueeze(2).unsqueeze(3)  # Add three new dimensions
         eps = torch.randn_like(x)
         return torch.sqrt(alpha_hat_t) * x + torch.sqrt(1 - alpha_hat_t) * eps, eps
@@ -72,6 +94,8 @@ if __name__ == "__main__":
             new_dict[key[6:]] = stdict[key]
     unet.load_state_dict(new_dict)
     diff = Diffusion(device = "cuda")
+    diff.device = "cuda:0"
+    diff.noise_schedule()
     if args.image_path:
         loader = load_data('wikiart_images',4 , 256,0)
         iterator = iter(loader)
