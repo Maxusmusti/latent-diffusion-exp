@@ -16,6 +16,7 @@ from unet import UNet
 import pytorch_lightning as pl
 from torchvision.utils import make_grid
 from argparse import Namespace
+from text_encode import SentenceEmbedder
 
 
 class EMA:
@@ -48,6 +49,7 @@ class DiffusionTrainer(pl.LightningModule):
         self.ema = EMA(0.995)
         self.model = UNet()
         self.ema_model = copy.deepcopy(self.model).eval().requires_grad_(False)
+        self.se = SentenceEmbedder()
    
     def forward(self, x_t, t):
         return self.model(x_t, t)
@@ -68,11 +70,12 @@ class DiffusionTrainer(pl.LightningModule):
         self.diffusion.noise_schedule()
 
     def training_step(self, batch, batch_idx):
-        images, _ = batch
+        images, labels = batch
+        captions = torch.from_numpy(self.se.encode_sentences(labels['TEXT'])) if self.args.conditional else None
         t = torch.randint(low=1, high=self.diffusion.num_steps, size=(images.shape[0],)).to(self.device)
         encoded_images = self.encode(images)
         x_t, noise = self.diffusion.forward(encoded_images, t)
-        predicted_noise = self.model(x_t, t)
+        predicted_noise = self.model(x_t, t, captions)
         loss = nn.MSELoss()(noise, predicted_noise)
 
         # Log images
@@ -106,11 +109,12 @@ class DiffusionTrainer(pl.LightningModule):
 
 
     def validation_step(self, batch, batch_idx):
-        images, _ = batch
+        images, labels = batch
+        captions = torch.from_numpy(self.se.encode_sentences(labels['TEXT'])) if self.args.conditional else None
         t = torch.randint(low=1, high=self.diffusion.num_steps, size=(images.shape[0],)).to(self.device)
         encoded_images = self.encode(images)
         x_t, noise = self.diffusion.forward(encoded_images, t)
-        predicted_noise = self.model(x_t, t)
+        predicted_noise = self.model(x_t, t. captions)
         loss = nn.MSELoss()(noise, predicted_noise)
 
         # Log images
@@ -165,6 +169,8 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint_path', default=None, type=str)
     parser.add_argument('--train_batches_per_epoch', default = 1000, type = int)
     parser.add_argument('--cosine_scheduler', default = False, type = bool)
+    parser.add_argument('--conditional', default = False, type=bool)
+
     args = parser.parse_args()
 
     # Example of how to train the DiffusionTrainer using PyTorch Lightning

@@ -54,9 +54,8 @@ class UNet(nn.Module):
         return condlayer(x, c)
 
     def forward(self, x, t, c=None, puncond=0.1):
-        if c is not None:
-            condition_toggle = False if random.uniform(0,1) < puncond else True # Discards the condition with probability puncond
-            x = self.apply_condition(x, c, condition_toggle, 1) # TODO: add this to a few other places in this method. Make sure to change the key every time
+        condition_toggle = False if (random.uniform(0,1) < puncond or c is None) else True # Discards the condition with probability puncond 
+        x = self.apply_condition(x, c, condition_toggle, 1) # TODO: add this to a few other places in this method. Make sure to change the key every time
 
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
@@ -177,10 +176,13 @@ class ConditionalLayer(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
         self.layer = nn.Sequential(
-            nn.Linear(np.prod(input_dim), np.prod(output_dim)),
-            nn.Unflatten(1, output_dim)
+            # input dim is 384. output dim is 4*32*32. Ignores the batch dimension (the first dimension)
+            nn.Linear(input_dim[-1], np.prod(output_dim[1:]))
         )
+        print(self.layer)
         
     def forward(self, x, c):
-        cond = self.layer(c)[0]
-        return x + cond
+        cond = self.layer(c) # transform the batch_size x 384 text embeddings into batch_size x 4*32*32
+        cond = torch.reshape(cond, (cond.shape[0], *x.shape[1:])) # reshapes it into batch_size x 4 x 32 x 32
+        added = x.to('cpu') + cond
+        return added.to('cuda:0')
