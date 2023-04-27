@@ -12,19 +12,14 @@ class SentenceEmbedder():
         return embeddings
 
 def run_example():
-    # From - https://www.sbert.net/
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    # From https://www.sbert.net/
 
-    #Our sentences we like to encode
-    sentences = ['This framework generates embeddings for each input sentence',
-        'Sentences are passed as a list of string.',
-        'The quick brown fox jumps over the lazy dog.']
+    sentences = ['White dog running']
+    se = SentenceEmbedder()
+    embeddings = se.encode_sentences(sentences)
 
-    #Sentences are encoded by calling model.encode()
-    embeddings = model.encode(sentences)
+    print(embeddings)
+    print(type(embeddings))
+    print(embeddings.shape)
 
-    #Print the embeddings
-    for sentence, embedding in zip(sentences, embeddings):
-        print("Sentence:", sentence)
-        print("Embedding:", embedding)
-        print("")
+run_example()
