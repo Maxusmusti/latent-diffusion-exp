@@ -7,7 +7,7 @@ Rami Matar (rhm2142), Mustafa Eyceoz (me2680), Justin Lee (jjl2245)
 
 ## Project Summary
 
-The goal of this project is to enable accessible, beautiful art generation (and conditional art generation) via latent diffusion models. Through a combination of a VQGAN, Diffusion, a UNet model with self-attention layers, and additional training/transfer-learning techniques, our system can convert any generated small noise pattern (32x32x4) into a hand-painted masterpiece. While small, compact, and fast, the art quality is still capable of making one stare and ponder. Additionally, users may soon be able to input captions as inspiration for their generated works.
+This project explores latent diffusion models introduced in the paper "High-Resolution Image Synthesis with Latent Diffusion Models" by Robin Rombach et. al. (2021) [1]. Diffusion models are generative models that have achieved state of the art results in many image processing tasks. Particularly, we explore the generative power of these models as well as their ability to learn conditional distributions (such as text). The goal of this project is to enable accessible, beautiful art generation (and conditional art generation) via latent diffusion models. Through a combination of a VQGAN, Diffusion, a UNet model with self-attention layers, and additional training/transfer-learning techniques, our system can convert any generated small noise pattern (32x32x4) into a hand-painted masterpiece. While small, compact, and fast, the art quality is still capable of making one stare and ponder. Additionally, users may soon be able to input captions as inspiration for their generated works.
 
 For more details and information, see the project write-up: `paper.pdf`
 
