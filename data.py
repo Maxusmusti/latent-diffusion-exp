@@ -91,6 +91,12 @@ class ImageMetaDataset(Dataset):
 
         self.image_files = [f for f in os.listdir(root_dir) if f.endswith('.jpg')]
         self.metadata_files = [f for f in os.listdir(root_dir) if f.endswith('.json')]
+
+        # Ensure that each jpg has a json and vice-versa
+        matches = set([i[:-4] for i in self.image_files]).intersection(set([i[:-5] for i in self.metadata_files]))
+        self.image_files = [i+'.jpg' for i in matches]
+        self.metadata_files = [i+'.json' for i in matches]
+
         # Ensure the image and metadata files are in the same order
         self.image_files.sort()
         self.metadata_files.sort()
