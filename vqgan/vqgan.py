@@ -43,7 +43,7 @@ default_args = Namespace(
     disc_start = 1,
     disc_weight = 0.6,
     codebook_weight = 1.0,
-    ckpt_path = 'model.ckpt',
+    ckpt_path = 'models/vqgan.ckpt',
     ignore_keys = []
 )
 from vqgan.encoder import Encoder
