@@ -6,3 +6,4 @@ transformers
 einops
 optuna
 sentence-transformers==2.2.2
+matplotlib
