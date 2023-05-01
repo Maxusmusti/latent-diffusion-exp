@@ -31,7 +31,7 @@ Additionally, if you are training, you will need to download an appropriate data
     python download_hf.py --dataset_name laion/laion-art --url_key URL --metadata_columns TEXT WIDTH HEIGHT similarity LANGUAGE hash pwatermark punsafe aesthetic --rows <NUM_SAMPLES> --output_dir laion_art_images --workers <NUM_WORKERS>```
 
 To train your own UNet model, the simplest way is to run the following:
- - `python trainer.py`. Note that all the arguments you can specify can be seen by running `python trainer.py -h`
+ - `python trainer.py`
  - For hyperparameters, checkpoint loading, and other config args, see all options with `python trainer.py <-h>/<--help>`
  - For conditional generation training, use the `--conditional` flag
  - The VQGAN can also be retrained if desired via `python vqgan.py`
